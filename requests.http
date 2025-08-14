@@ -1,0 +1,7 @@
+### Create Embedding
+POST http://localhost:4000/api/embeddings
+Content-Type: application/json
+
+{
+  "data": "Proqit markket."
+}

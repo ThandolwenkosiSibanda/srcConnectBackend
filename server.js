@@ -22,32 +22,43 @@ app.use(
 
 app.use(express.json()); // parse JSON bodies
 
-const supabaseAdmin = createClient(
+const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Core function to create embeddings
-async function createEmbedding(text) {
+// Core function to create embeddings and upsert into Supabase
+async function createEmbedding(id, content) {
   try {
+    // 1. Generate embedding
     const response = await openai.embeddings.create({
       model: "text-embedding-3-large",
-      input: text,
+      input: content,
     });
     const embedding = response.data[0].embedding;
     console.log("Embedding length:", embedding.length);
+
+    // 2. Upsert into Supabase
+    const { data, error } = await supabase
+      .from("documents")
+      .upsert({ id, content, embedding }, { onConflict: ["id"] });
+
+    if (error) {
+      console.error("Supabase upsert error:", error);
+    } else {
+      console.log("Document upserted:", data);
+    }
+
     return embedding;
   } catch (error) {
     console.error("Error creating embedding:", error);
+    throw error; // re-throw to handle in route
   }
 }
 
+// API endpoint
 app.post("/api/embeddings", async (req, res) => {
-  const { data } = req.body;
+  const { data, id } = req.body;
 
   if (!data || typeof data !== "string") {
     return res
@@ -56,10 +67,9 @@ app.post("/api/embeddings", async (req, res) => {
   }
 
   try {
-    const embedding = await createEmbedding(data);
+    const embedding = await createEmbedding(id || null, data);
     res.status(201).json({ embedding });
   } catch (error) {
-    console.error("error", error);
     res.status(500).json({ error: error.message || "Internal server error" });
   }
 });
