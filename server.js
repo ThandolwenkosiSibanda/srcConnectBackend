@@ -88,6 +88,39 @@ async function getEmbedding(text) {
   return response.data[0].embedding;
 }
 
+// Robust cosine similarity (no deps)
+function cosineSim(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return null;
+  if (a.length !== b.length) return null;
+
+  let dot = 0,
+    na = 0,
+    nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    const x = Number(a[i]);
+    const y = Number(b[i]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    dot += x * y;
+    na += x * x;
+    nb += y * y;
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom ? dot / denom : 0;
+}
+
+// If pgvector comes back as a string like "[0.1, 0.2, ...]"
+function ensureNumericArray(v) {
+  if (Array.isArray(v)) return v;
+  if (v == null) return null;
+  if (typeof v === "string") {
+    // handles "[1, 2, 3]" or "{1,2,3}" styles
+    const cleaned = v.replace(/^[\[\{\(]\s*|\s*[\]\}\)]$/g, "");
+    const arr = cleaned.split(",").map((s) => Number(s.trim()));
+    return arr.every(Number.isFinite) ? arr : null;
+  }
+  return null;
+}
+
 // Endpoint: Semantic Search
 app.post("/api/search", async (req, res) => {
   const { query, limit = 5 } = req.body;
