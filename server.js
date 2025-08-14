@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 import cors from "cors";
 import OpenAI from "openai";
+import cosineSimilarity from "cosine-similarity";
 
 dotenv.config();
 
