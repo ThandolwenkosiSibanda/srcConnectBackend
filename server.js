@@ -28,20 +28,24 @@ const supabase = createClient(
 );
 
 // Core function to create embeddings and upsert into Supabase
-async function createEmbedding(id, content) {
+async function createEmbedding(id, text) {
   try {
     // 1. Generate embedding
     const response = await openai.embeddings.create({
       model: "text-embedding-3-large",
-      input: content,
+      input: text,
     });
     const embedding = response.data[0].embedding;
     console.log("Embedding length:", embedding.length);
 
     // 2. Upsert into Supabase
-    const { data, error } = await supabase
-      .from("complaints")
-      .upsert({ id, content, embedding }, { onConflict: ["id"] });
+    const { data, error } = await supabase.from("complaints").upsert(
+      {
+        id,
+        embedding, // store vector in the `embedding` column
+      },
+      { onConflict: ["id"] }
+    );
 
     if (error) {
       console.error("Supabase upsert error:", error);
