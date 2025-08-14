@@ -40,7 +40,7 @@ async function createEmbedding(id, content) {
 
     // 2. Upsert into Supabase
     const { data, error } = await supabase
-      .from("documents")
+      .from("complaints")
       .upsert({ id, content, embedding }, { onConflict: ["id"] });
 
     if (error) {

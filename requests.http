@@ -1,7 +1,8 @@
 ### Create Embedding
-POST http://localhost:4000/api/embeddings
+POST https://srcconnectbackend.onrender.com/api/embeddings
 Content-Type: application/json
 
 {
-  "data": "Proqit markket."
+  "data": "Proqit markket.",
+  "id": "d15c648b-d48e-4574-8d05-035d0fba13c4"
 }
