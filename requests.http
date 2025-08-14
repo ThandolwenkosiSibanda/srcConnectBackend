@@ -6,3 +6,12 @@ Content-Type: application/json
   "data": "Proqit markket.",
   "id": "03a3105f-d363-46a0-9be3-150959624ee5"
 }
+
+
+### Search
+POST https://srcconnectbackend.onrender.com/api/search
+Content-Type: application/json
+
+{
+  "query": "Proqit markket."
+}
