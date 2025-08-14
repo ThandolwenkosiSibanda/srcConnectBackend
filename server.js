@@ -78,6 +78,49 @@ app.post("/api/embeddings", async (req, res) => {
   }
 });
 
+// Utility: Create embedding
+async function getEmbedding(text) {
+  const response = await openai.embeddings.create({
+    model: "text-embedding-3-large",
+    input: text,
+  });
+  return response.data[0].embedding;
+}
+
+// Endpoint: Semantic Search
+app.post("/api/search", async (req, res) => {
+  const { query, limit = 5 } = req.body;
+
+  if (!query || typeof query !== "string") {
+    return res.status(400).json({ error: "Query must be a non-empty string" });
+  }
+
+  try {
+    // 1. Get embedding for query
+    const queryEmbedding = await getEmbedding(query);
+
+    // 2. Fetch all rows (id, content, embedding)
+    const { data: rows, error } = await supabase
+      .from("complaints")
+      .select("id,embedding");
+
+    if (error) throw error;
+
+    // 3. Score by cosine similarity
+    const scored = rows.map((row) => ({
+      id: row.id,
+      similarity: cosineSimilarity(queryEmbedding, row.embedding),
+    }));
+
+    // 4. Sort + return top results
+    scored.sort((a, b) => b.similarity - a.similarity);
+    res.json(scored.slice(0, limit));
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
