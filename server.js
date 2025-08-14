@@ -107,7 +107,7 @@ app.post("/api/search", async (req, res) => {
     // 2) Fetch rows (skip nulls at the DB if you want)
     const { data: rows, error } = await supabase
       .from("complaints")
-      .select("id, content, embedding");
+      .select("id, embedding");
     if (error) throw error;
 
     // 3) Score safely
@@ -119,7 +119,7 @@ app.post("/api/search", async (req, res) => {
 
       const score = cosineSim(queryEmbedding, vect);
       if (score == null) continue; // non-numeric or mismatch
-      scored.push({ id: row.id, content: row.content, similarity: score });
+      scored.push({ id: row.id, similarity: score });
     }
 
     // 4) Sort and return
