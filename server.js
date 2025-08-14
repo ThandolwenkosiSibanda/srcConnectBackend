@@ -90,35 +90,44 @@ async function getEmbedding(text) {
 
 // Endpoint: Semantic Search
 app.post("/api/search", async (req, res) => {
-  const { query, limit = 500 } = req.body;
-
+  const { query, limit = 5 } = req.body;
   if (!query || typeof query !== "string") {
     return res.status(400).json({ error: "Query must be a non-empty string" });
   }
 
   try {
-    // 1. Get embedding for query
-    const queryEmbedding = await getEmbedding(query);
+    // 1) Get query embedding
+    const { data: emb } = await openai.embeddings.create({
+      model: "text-embedding-3-large", // keep consistent with stored vectors
+      input: query,
+    });
+    const queryEmbedding = emb[0].embedding;
+    const EXPECTED_DIM = 3072; // 1536 if you use text-embedding-3-small
 
-    // 2. Fetch all rows (id, content, embedding)
+    // 2) Fetch rows (skip nulls at the DB if you want)
     const { data: rows, error } = await supabase
       .from("complaints")
-      .select("id,embedding");
-
+      .select("id, content, embedding");
     if (error) throw error;
 
-    // 3. Score by cosine similarity
-    const scored = rows.map((row) => ({
-      id: row.id,
-      similarity: cosineSimilarity(queryEmbedding, row.embedding),
-    }));
+    // 3) Score safely
+    const scored = [];
+    for (const row of rows || []) {
+      const vect = ensureNumericArray(row.embedding);
+      if (!vect) continue; // invalid / null
+      if (vect.length !== EXPECTED_DIM) continue; // mixed models issue
 
-    // 4. Sort + return top results
+      const score = cosineSim(queryEmbedding, vect);
+      if (score == null) continue; // non-numeric or mismatch
+      scored.push({ id: row.id, content: row.content, similarity: score });
+    }
+
+    // 4) Sort and return
     scored.sort((a, b) => b.similarity - a.similarity);
-    res.json(scored.slice(0, limit));
-  } catch (err) {
-    console.error("Search error:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
+    res.json(scored.slice(0, Number(limit) || 5));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message || "Internal server error" });
   }
 });
 
