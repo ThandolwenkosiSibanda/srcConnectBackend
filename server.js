@@ -42,7 +42,7 @@ async function createEmbedding(id, text) {
     const { data, error } = await supabase.from("complaints").upsert(
       {
         id,
-        embedding, // store vector in the `embedding` column
+        embedding,
       },
       { onConflict: ["id"] }
     );
