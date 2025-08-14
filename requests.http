@@ -13,5 +13,5 @@ POST https://srcconnectbackend.onrender.com/api/search
 Content-Type: application/json
 
 {
-  "query": "Proqit markket."
+  "query": "Proqit"
 }

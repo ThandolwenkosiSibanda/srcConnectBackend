@@ -90,7 +90,7 @@ async function getEmbedding(text) {
 
 // Endpoint: Semantic Search
 app.post("/api/search", async (req, res) => {
-  const { query, limit = 5 } = req.body;
+  const { query, limit = 500 } = req.body;
 
   if (!query || typeof query !== "string") {
     return res.status(400).json({ error: "Query must be a non-empty string" });
